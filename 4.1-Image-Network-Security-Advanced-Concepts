@@ -1,0 +1,119 @@
+Yes! Let's cover additional interview-relevant concepts, potential questions, and answers related to Image Loading & Memory Management 
+and Security Best Practices in Android.
+
+🔥 Additional Interview-Relevant Topics
+
+🔹 Image Loading & Memory Management
+Bitmap Pooling: Avoids redundant memory allocations by reusing bitmaps.
+Downsampling & Transformation: Reducing image resolution to fit device display.
+Disk & Memory Caching: Helps reduce network requests and improves load time.
+Lifecycle Awareness: How to manage image requests efficiently in Jetpack Compose.
+Lazy Loading & Placeholder Usage: Ensuring smooth UX when images are loading.
+
+🔹 Security Best Practices
+Certificate Transparency: Validates if a certificate is legitimate.
+KeyStore API: Securely storing cryptographic keys.
+Biometric Authentication: FaceID/Fingerprint login for secure access.
+Root & Emulator Detection: Prevents attacks from compromised devices.
+Obfuscation Tools: ProGuard, R8, DexGuard for securing source code.
+Runtime Permission Handling: Secure access to sensitive user data.
+
+📌 Sample Interview Questions & Answers
+
+🔹 Image Loading & Memory Management
+Q1: What is bitmap pooling, and why is it important?
+A: Bitmap pooling is a memory optimization technique where previously used bitmaps are reused instead of creating new ones. This reduces garbage collection pressure and improves app performance, especially in scrolling lists.
+
+Q2: How does Coil/Glide handle memory management?
+A:
+
+Coil: Uses coroutines and OkHttp caching, making it lightweight and efficient.
+Glide: Uses LruCache and bitmap pooling to optimize memory and speed.
+
+Q3: How do you prevent OutOfMemory (OOM) errors while loading large images?
+A:
+
+Use image downsampling to load smaller images.
+Use disk caching instead of loading from the network.
+Use placeholders to prevent blank UI while loading.
+Avoid keeping large bitmaps in memory unnecessarily.
+
+Q4: Explain the difference between memory caching and disk caching in image loading.
+A:
+
+Memory Caching: Stores images in RAM for faster retrieval but consumes more memory.
+Disk Caching: Stores images on disk, reducing memory usage but requiring more time to load.
+
+🔹 Security Best Practices
+Q5: What is SSL Pinning, and how does it protect your app?
+A:
+
+SSL Pinning ensures that the app only trusts a predefined SSL certificate, preventing Man-in-the-Middle (MITM) attacks. If an attacker tries to intercept network traffic using a fake certificate, the request will be rejected.
+
+Q6: How do you securely store sensitive data in an Android app?
+A:
+
+Use EncryptedSharedPreferences for small key-value data.
+Store cryptographic keys in Android KeyStore.
+Use SQLCipher for encrypting SQLite databases.
+
+Q7: What is OWASP Mobile Security and why is it important?
+A:
+OWASP (Open Web Application Security Project) is a standard for mobile security best practices. It helps developers secure apps from data leakage, insecure authentication, and cryptographic weaknesses.
+
+Q8: How can you detect if an app is running on a rooted device?
+A:
+You can check for:
+
+The presence of root management apps (SuperSU, Magisk)
+Writable system partitions (/system/xbin/su existence)
+Running shell commands like which su
+Example code:
+
+fun isDeviceRooted(): Boolean {
+    val paths = arrayOf("/system/xbin/su", "/system/bin/su")
+    return paths.any { File(it).exists() }
+}
+
+Q9: How do you protect an APK from reverse engineering?
+A:
+
+Enable ProGuard/R8 for obfuscation.
+Use DexGuard for additional security.
+Encrypt sensitive strings instead of hardcoding them in the APK.
+Remove debug logs to prevent exposing sensitive data.
+
+Q10: What is SQL Injection, and how can you prevent it in Android?
+A:
+
+SQL Injection occurs when an attacker manipulates SQL queries to access unauthorized data.
+Prevention methods:
+
+Use parameterized queries instead of string concatenation.
+Use Room ORM, which handles security automatically.
+Bad Practice (Vulnerable to SQL Injection):
+
+val query = "SELECT * FROM users WHERE username = '" + userInput + "'"
+
+Best Practice (Safe with Parameterized Query):
+
+@Query("SELECT * FROM users WHERE username = :username")
+fun getUser(username: String): User
+
+🔥 Bonus: Scenario-Based Questions
+Q11: Your app loads a large number of images but experiences performance issues. How would you debug this? A:
+
+Check for memory leaks using Android Studio’s Profiler.
+Use Coil's request logging to see if unnecessary image loads happen.
+Optimize LazyColumn scrolling performance.
+Reduce bitmap resolution using .size() in Coil/Glide.
+
+Q12: A security audit found your app is vulnerable to MITM attacks. How would you fix it? A:
+
+Implement SSL Pinning using OkHttp.
+Enforce HTTPS (HSTS) for all network calls.
+Use Network Security Configuration to block cleartext traffic.
+
+🚀 Conclusion
+These are the most important interview topics and sample questions related to Image Loading & Memory Management and Security Best Practices. 
+Mastering these will make you confident in handling performance issues and security vulnerabilities in Android apps.
