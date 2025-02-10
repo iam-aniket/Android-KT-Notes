@@ -1,0 +1,59 @@
+Can you remove the retrofit instance from the view model as it's against industry standard and instead create it in a separate file? Do you think this is the right approach for MVVM and industry standard? Fell free to suggest if it's wrong
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+data class ApiResonse(
+    @Json(name = 'Id Value') val id : Int,
+    @Json(name = 'Person Name') val name : String
+)
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+interface ApiService{
+    @GET("data")
+    suspend fun fetchData() : ApiResponse
+}
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+object RetrofitClient {
+    private val moshi: Moshi = Moshi.Builder().build()
+
+    private val retrofit: Retrofit = Retrofit.Builder()
+        .baseUrl("https://api.example.com/") // Replace with your base URL
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
+        .build()
+
+    val apiService: ApiService = retrofit.create(ApiService::class.java)
+}
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+sealed class Resource<out T> {
+    data object Loading : Resource<Nothing>()
+    data class Success<T>(val data: T) : Resource<T>()
+    data class Error(val message: String, val throwable: Throwable? = null) : Resource<Nothing>()
+}
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+class Repository(private val apiService: ApiService) {
+    suspend fun fetchData(): Resource<ApiResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.fetchData()
+                Resource.Success(response)
+            } catch (e: HttpException) {
+                Resource.Error("Server error: ${e.message()}", e)
+            } catch (e: IOException) {
+                Resource.Error("Network error, please check your connection", e)
+            } catch (e: Exception) {
+                Resource.Error("Something went wrong", e)
+            }
+        }
+    }
+}
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+class MainViewModel(private val repository: Repository) : ViewModel() {
+    private val _data = MutableStateFlow<Resource<ApiResponse>>(Resource.Loading)
+    val data: StateFlow<Resource<ApiResponse>> = _data
+
+    fun fetchData() {
+        viewModelScope.launch {
+            _data.value = Resource.Loading
+            _data.value = repository.fetchData()
+        }
+    }
+}
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
