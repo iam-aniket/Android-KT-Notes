@@ -1,0 +1,212 @@
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 1. Data Model (ApiResponse.kt)
+📂 Location: app/src/main/java/com/example/myapp/data/model/ApiResponse.kt
+
+package com.example.myapp.data.model
+
+import com.squareup.moshi.Json
+
+data class ApiResponse(
+    @Json(name = "Id Value") val id: Int,
+    @Json(name = "Name Value") val name: String
+)
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌2. Retrofit API Service (ApiService.kt)
+📂 Location: app/src/main/java/com/example/myapp/data/remote/ApiService.kt
+
+package com.example.myapp.data.remote
+
+import com.example.myapp.data.model.ApiResponse
+import retrofit2.http.GET
+
+interface ApiService {
+    @GET("data")
+    suspend fun fetchData(): ApiResponse
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 3. Network Resource Wrapper (Resource.kt)
+📂 Location: app/src/main/java/com/example/myapp/utils/Resource.kt
+
+package com.example.myapp.utils
+
+sealed class Resource<out T> {
+    data object Loading : Resource<Nothing>()
+    data class Success<T>(val data: T) : Resource<T>()
+    data class Error(val message: String, val throwable: Throwable? = null) : Resource<Nothing>()
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 4. Repository (Repository.kt)
+📂 Location: app/src/main/java/com/example/myapp/data/remote/Repository.kt
+
+package com.example.myapp.data.remote
+
+class Repository @Inject constructor(private val apiService: ApiService) {
+
+    suspend fun fetchData(): Resource<ApiResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.fetchData()
+                Resource.Success(response)
+            } catch (e: HttpException) {
+                Log.e("Repository", "HTTP Error: ${e.code()} - ${e.message()}", e)
+                Resource.Error("Server error: ${e.message()}", e)
+            } catch (e: IOException) {
+                Log.e("Repository", "Network Error: ${e.message}", e)
+                Resource.Error("Network error, please check your connection", e)
+            } catch (e: Exception) {
+                Log.e("Repository", "Unexpected Error: ${e.localizedMessage}", e)
+                Resource.Error("Something went wrong", e)
+            }
+        }
+    }
+}
+
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 5. Dependency Injection (AppModule.kt)
+📂 Location: app/src/main/java/com/example/myapp/di/AppModule.kt
+
+package com.example.myapp.di
+
+import com.example.myapp.data.remote.ApiService
+import com.example.myapp.data.remote.Repository
+import com.squareup.moshi.Moshi
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideMoshi(): Moshi = Moshi.Builder().build()
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(moshi: Moshi): Retrofit =
+        Retrofit.Builder()
+            .baseUrl("https://api.example.com/")
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+
+    @Provides
+    @Singleton
+    fun provideApiService(retrofit: Retrofit): ApiService =
+        retrofit.create(ApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideRepository(apiService: ApiService): Repository =
+        Repository(apiService)
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 6. ViewModel (MainViewModel.kt)
+📂 Location: app/src/main/java/com/example/myapp/viewmodel/MainViewModel.kt
+
+package com.example.myapp.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.myapp.data.model.ApiResponse
+import com.example.myapp.data.remote.Repository
+import com.example.myapp.utils.Resource
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class MainViewModel @Inject constructor(private val repository: Repository) : ViewModel() {
+    private val _data = MutableStateFlow<Resource<ApiResponse>>(Resource.Loading)
+    val data: StateFlow<Resource<ApiResponse>> = _data
+
+    fun fetchData() {
+        viewModelScope.launch {
+            _data.value = Resource.Loading
+            _data.value = repository.fetchData()
+        }
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 7. UI Screen (MainScreen.kt)
+📂 Location: app/src/main/java/com/example/myapp/ui/MainScreen.kt
+
+package com.example.myapp.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapp.utils.Resource
+import com.example.myapp.viewmodel.MainViewModel
+
+@Composable
+fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
+    val uiState by viewModel.data.collectAsState()
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        when (uiState) {
+            is Resource.Loading -> {
+                CircularProgressIndicator()
+            }
+            is Resource.Success -> {
+                Text(text = "Data: ${(uiState as Resource.Success).data.name}")
+            }
+            is Resource.Error -> {
+                val errorMessage = (uiState as Resource.Error).message
+                Text(text = "Error: $errorMessage", color = MaterialTheme.colors.error)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = { viewModel.fetchData() }) {
+            Text("Fetch Data")
+        }
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 8. Main Activity (MainActivity.kt)
+📂 Location: app/src/main/java/com/example/myapp/MainActivity.kt
+
+package com.example.myapp
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import com.example.myapp.ui.MainScreen
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MainScreen()
+        }
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
