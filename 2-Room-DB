@@ -1,0 +1,286 @@
+Here’s a complete, industry-standard implementation of Room Database operations in an Android app using Kotlin, Jetpack Compose, and MVVM architecture. This implementation covers CRUD operations (Create, Read, Update, Delete) and demonstrates data persistence.
+
+Key Concepts of Room DB and Data Persistence
+
+1. Room Database Overview
+
+Room is a persistence library in Android that provides an abstraction layer over SQLite to enable easier database access while maintaining full power.
+It provides the following components:
+
+* Database: The main access point that holds the database instance.
+* Entity: Represents a table in the database.
+* DAO (Data Access Object): Contains methods for database operations.
+
+2. Why Use Room Instead of SQLite?
+
+Compile-time verification of SQL queries.
+Less boilerplate code.
+Easy migration handling. (Different Versions of DB Updates)
+Support for Kotlin Coroutines & Flow.
+
+3. Data Persistence in Android
+
+Room ensures data persistence by storing data in an SQLite database, which survives app restarts.
+
+* Lifecycle Awareness: Using LiveData/Flow, UI updates automatically when data changes.
+* Coroutines & Flows: For background database operations.
+
+📂 Project Folder Structure
+
+📂 app
+ ┣ 📂 data
+ ┃ ┣ 📂 local
+ ┃ ┃ ┣ 📄 AppDatabase.kt
+ ┃ ┃ ┣ 📄 UserDao.kt
+ ┃ ┃ ┣ 📄 UserEntity.kt
+ ┣ 📂 repository
+ ┃ ┣ 📄 UserRepository.kt
+ ┣ 📂 ui
+ ┃ ┣ 📂 viewmodel
+ ┃ ┃ ┣ 📄 UserViewModel.kt
+ ┃ ┣ 📂 screen
+ ┃ ┃ ┣ 📄 UserScreen.kt
+ ┣ 📄 MainActivity.kt
+ ┣ 📄 AppModule.kt (Dependency Injection using Hilt)
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 1. Entity (UserEntity.kt) :- Defines the table structure.
+📂 Location: app/src/main/java/com/example/app/data/local/UserEntity.kt
+
+package com.example.app.data.local
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "users")
+data class UserEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val age: Int
+)
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 2. DAO (UserDao.kt) :- Defines database operations.
+📂 Location: app/src/main/java/com/example/app/data/local/UserDao.kt
+
+package com.example.app.data.local
+
+import androidx.room.*
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface UserDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUser(user: UserEntity)
+
+    @Update
+    suspend fun updateUser(user: UserEntity)
+
+    @Delete
+    suspend fun deleteUser(user: UserEntity)
+
+    @Query("SELECT * FROM users ORDER BY id ASC")
+    fun getAllUsers(): Flow<List<UserEntity>>
+
+    @Query("DELETE FROM users")
+    suspend fun deleteAllUsers()
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 3. Database (AppDatabase.kt) :- The main Room Database class.
+📂 Location: app/src/main/java/com/example/app/data/local/AppDatabase.kt
+
+package com.example.app.data.local
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+
+@Database(entities = [UserEntity::class], version = 1, exportSchema = false)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun userDao(): UserDao
+}
+
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+📌 4. Repository (UserRepository.kt) :- Handles data operations & abstracts database logic from UI.
+📂 Location: app/src/main/java/com/example/app/repository/UserRepository.kt
+
+package com.example.app.repository
+
+import com.example.app.data.local.UserDao
+import com.example.app.data.local.UserEntity
+import kotlinx.coroutines.flow.Flow
+
+class UserRepository(private val userDao: UserDao) {
+
+    val allUsers: Flow<List<UserEntity>> = userDao.getAllUsers()
+
+    suspend fun insertUser(user: UserEntity) {
+        userDao.insertUser(user)
+    }
+
+    suspend fun updateUser(user: UserEntity) {
+        userDao.updateUser(user)
+    }
+
+    suspend fun deleteUser(user: UserEntity) {
+        userDao.deleteUser(user)
+    }
+
+    suspend fun deleteAllUsers() {
+        userDao.deleteAllUsers()
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 5. ViewModel (UserViewModel.kt) :- Manages UI state and interacts with the repository.
+
+package com.example.app.ui.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.app.data.local.UserEntity
+import com.example.app.repository.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class UserViewModel @Inject constructor(
+    private val repository: UserRepository
+) : ViewModel() {
+
+    val users = repository.allUsers
+
+    private val _userName = MutableStateFlow("")
+    val userName: StateFlow<String> = _userName
+
+    fun insertUser(name: String, age: Int) {
+        viewModelScope.launch {
+            repository.insertUser(UserEntity(name = name, age = age))
+        }
+    }
+
+    fun updateUser(user: UserEntity) {
+        viewModelScope.launch {
+            repository.updateUser(user)
+        }
+    }
+
+    fun deleteUser(user: UserEntity) {
+        viewModelScope.launch {
+            repository.deleteUser(user)
+        }
+    }
+
+    fun deleteAllUsers() {
+        viewModelScope.launch {
+            repository.deleteAllUsers()
+        }
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 6. UI (UserScreen.kt) :- Jetpack Compose UI for displaying & managing users.
+
+package com.example.app.ui.screen
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app.ui.viewmodel.UserViewModel
+
+@Composable
+fun UserScreen(viewModel: UserViewModel = viewModel()) {
+    val users by viewModel.users.collectAsState(initial = emptyList())
+
+    var name by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        TextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
+        TextField(value = age, onValueChange = { age = it }, label = { Text("Age") })
+
+        Button(onClick = { viewModel.insertUser(name, age.toIntOrNull() ?: 0) }) {
+            Text("Add User")
+        }
+
+        LazyColumn {
+            items(users) { user ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("${user.name}, ${user.age}")
+                    Button(onClick = { viewModel.deleteUser(user) }) {
+                        Text("Delete")
+                    }
+                }
+            }
+        }
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 7. Dependency Injection (AppModule.kt) :- Dagger Hilt for dependency injection.
+
+package com.example.app
+
+import android.content.Context
+import androidx.room.Room
+import com.example.app.data.local.AppDatabase
+import com.example.app.data.local.UserDao
+import com.example.app.repository.UserRepository
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(context: Context): AppDatabase {
+        return Room.databaseBuilder(context, AppDatabase::class.java, "user_database").build()
+    }
+
+    @Provides
+    fun provideUserDao(db: AppDatabase): UserDao = db.userDao()
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(userDao: UserDao): UserRepository {
+        return UserRepository(userDao)
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+
+📌 8. Main Activity (MainActivity.kt)
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            UserScreen()
+        }
+    }
+}
+
+📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
